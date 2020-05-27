@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代办事项</title>
+    <!-- 引入SUI框架 -->
+    <link rel="stylesheet" href="http://g.alicdn.com/msui/sm/0.6.2/css/sm.min.css">
+    <script src="vue.js"></script>
+</head>
+<style>
+    .btn-box {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-box button {
+        margin: 0 5px;
+    }
+
+    .finish p {
+        text-decoration: line-through;
+    }
+
+    .tabbar-box {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        height: 70px;
+        background: #f7f7f8;
+    }
+
+    .tabbar-box .circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+
+    .theme-primary {
+        border: 1px solid blue;
+        color: blue;
+    }
+
+    .theme-success {
+        border: 1px solid green;
+        color: green;
+    }
+
+    .theme-danger {
+        border: 1px solid red;
+        color: red;
+    }
+
+    .theme-primary.theme-fill {
+        background: blue;
+        color: #fff;
+    }
+
+    .theme-success.theme-fill {
+        background: green;
+        color: #fff;
+    }
+
+    .theme-danger.theme-fill {
+        background: red;
+        color: #fff;
+    }
+
+    .add {
+        padding: 10px 0;
+        text-align: center;
+    }
+
+    .content {
+        height: 526px;
+    }
+
+    [v-cloak]{
+        display: none;
+    }
+</style>
+
+<body>
+    <div id="app" v-cloak>
+        <!-- header start -->
+        <header class="bar bar-nav">
+            <a class="icon icon-emoji pull-left"></a>
+            <a class="icon icon-message pull-right"></a>
+            <h1 class="title">代办事项</h1>
+        </header>
+        <!-- header end -->
+
+        <!-- model start -->
+        <div class="device-content" v-if="isShow" @click="isShow=false">
+            <div class="modal-overlay modal-overlay-visible"></div>
+            <div class="modal modal-in" style="display: block; margin-top: -71px;">
+                <div class="modal-inner">
+                    <div class="modal-title">确定要删除吗</div>
+                </div>
+                <div class="modal-buttons ">
+                    <span class="modal-button modal-button-bold" @click="removeTodo(preRemoveId)">确定</span>
+                </div>
+            </div>
+        </div>
+        <!-- model end -->
+
+        <!-- content start -->
+        <div class="content">
+            <div class="content-block-title" v-if="showTodos.length>0">代办事项总共{{showTodos.length}}</div>
+            <div class="content-block-title" v-else>目前没有代表事项</div>
+            <div class="card" v-for="todo in showTodos">
+                <div class="card-content">
+                    <div :class="['card-content-inner',(todo.isFinished?'finish':'')]">
+                        <p>{{todo.title}}</p>
+                        <div class="btn-box">
+                            <button @click="todo.isFinished=!todo.isFinished"
+                                :class="['button','button-success',(todo.isFinished?'button-fill':'')]">
+                                <span class="icon icon-check"></span>
+                            </button>
+                            <button @click="checkRemoveTodo(todo.id,todo.isFinished)" class="button button-danger">
+                                <span class="icon icon-remove"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="add">
+                <input v-if="type=='all'" type="text" @keyUp.13="up" placeholder="添加待办事项">
+            </div>
+        </div>
+        <!-- content end -->
+        <div class="tabbar-box">
+            <!-- <button class="circle theme-primary theme-fill">All</button>
+            <button class="circle theme-success">F</button>
+            <button class="circle theme-danger">U</button> -->
+            <button 
+                v-for="btn in btns" 
+                :key="btn.id"
+                :class="['circle','theme-'+(btn.theme),(btn.type==type?'theme-fill':'')]"
+                @click="type=btn.type"
+                >{{ btn.title }}
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        new Vue({
+            el: "#app",
+            data: {
+                todos: [
+                    { id: 1, title: "哈哈哈", isFinished: false },
+                    { id: 2, title: "也一样", isFinished: true }
+                ],
+                isShow: false,
+                preRemoveId: "",
+                btns: [
+                    { id: 1, title: "All", theme: "primary", type: "all" },
+                    { id: 2, title: "F", theme: "success", type: "finished" },
+                    { id: 3, title: "U", theme: "danger", type: "unfinished" }
+                ],
+                type: "all"
+            },
+            computed: {
+                showTodos() { // 这个计算属性与type进行关联，type改变了,计算属性才会重新计算
+                    switch (this.type) {
+                        case "all":
+                            return this.todos
+                        case "finished":
+                            return this.todos.filter(item => {
+                                return item.isFinished ? true : false
+                            })
+                        case "unfinished":
+                            return this.todos.filter(item => {
+                                return item.isFinished ? false : true
+                            })
+                    }
+                }
+            },
+            methods: {
+                up(e) {
+                    let id = this.todos.length + 1
+                    this.todos.push({ id: id, title: e.target.value, isFinished: false })
+                    e.target.value = ""
+                },
+                checkRemoveTodo(id, isFinished) {
+                    if (!isFinished) { // 如果是未完成的todo
+                        this.isShow = true // 显示出弹出框
+                        this.preRemoveId = id // 记录即将要被删除的todo的id号
+                        return false
+                    }
+                    this.removeTodo(id)
+                },
+                removeTodo(id) {
+                    // 删除操作
+                    this.todos = this.todos.filter(item => {
+                        if (item.id == id) {
+                            return false
+                        }
+                        return true
+                    })
+                }
+            }
+        })
+    </script>
+</body>
+</html>
